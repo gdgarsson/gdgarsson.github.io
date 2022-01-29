@@ -1,0 +1,19 @@
+Geoffrey Garsson
+CS420x Assignment 2
+
+Quite honestly, I'm not sure I really had an aesthetic intent with this. I just kinda went with whatever to see what works.
+I kinda just treated this as if I was playing with a toy, since I'm not really the most artistic person.
+The box was definitely just a way for me to explore how the facecam texture works with WebGL by default.
+The box was also a way for me to explore more with doing matrices, since my forte is more rendering than art.
+I originally considering having the camera move and rotate along with the box, but I figured that would be too disorienting.
+The box scaling with rotation was definitely not intended, but I'd be lying if I said I didn't think the effect was cool, so I kept it in anyways.
+As for the backgroud, I started with a simplex grid and just modified the colors on a sin, cos and tan wave for red, green, and blue respectively.
+I personally thought that it'd create a rather interesting background effect.
+
+Anyways, the controls are:
+
+Press 'i': invert the camera color (color = (1,1,1) - (camera color vector))
+Press 'r': enable the rotation effect for the box
+Press 't': enable the movement effect for the box
+Press 'a': set the movement and rotation direction for the box to be counter-clockwise
+Press 'd': set the movement and rotation direction for the box to be clockwise
