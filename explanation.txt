@@ -7,8 +7,9 @@ The box was definitely just a way for me to explore how the facecam texture work
 The box was also a way for me to explore more with doing matrices, since my forte is more rendering than art.
 I originally considering having the camera move and rotate along with the box, but I figured that would be too disorienting.
 The box scaling with rotation was definitely not intended, but I'd be lying if I said I didn't think the effect was cool, so I kept it in anyways.
-As for the backgroud, I started with a simplex grid and just modified the colors on a sin, cos and tan wave for red, green, and blue respectively.
-I personally thought that it'd create a rather interesting background effect.
+Regardless, both of those effects are litearlly just translation and rotation matrices applied, both using some combination of sin(time) and/or cos(time) to determine how they move/rotate.
+As for the background, I started with a simplex grid and just modified the colors on a sin, cos and tan wave for red, green, and blue respectively.
+I personally thought that it'd create a rather interesting background effect. Its not perfect nor smooth, but its definitely a little noisy.
 
 Anyways, the controls are:
 
