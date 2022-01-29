@@ -113,12 +113,7 @@
 		boxOrient += vec2(.5);
 	  }
 	  if(enableBoxTrans) {
-		if(boxRotateLeft){
-			boxTranslate = vec2(sin(time * -0.02), cos(time * -0.02)) * .2;
-		}
-		else {
-			boxTranslate = vec2(sin(time * 0.02), cos(time * 0.02)) * .2;
-		}
+		boxTranslate = vec2(sin(time * 0.02), cos(time * 0.02)) * .2;
 		boxOrient += boxTranslate;
 	  }
 	  float boxHit = box(boxOrient, vec2(0.25));
