@@ -280,8 +280,8 @@
 					&& j >= Math.floor(dimensions.height / 4)
 					&& j <= Math.floor(dimensions.height * 3 / 4)){
 					
-					tempA = 0
-					tempB = 1
+					tempA = .5
+					tempB = .25
 				}
 				poke( i, j, tempA, tempB, textureBack )
 			}
