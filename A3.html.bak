@@ -41,7 +41,7 @@
 		uniform vec2 resolution;
 		
 		float a = 0.0;
-		float b = 0.0
+		float b = 0.0;
 		
 		float dA = 1.0;
 		float dB = 0.5;
@@ -124,6 +124,7 @@
       makeBuffer()
       makeShaders()
       makeTextures()
+	  setInitialState();
     }
     
     function makeBuffer() {
@@ -243,7 +244,7 @@
       render()
     }
 	
-	function poke( x, y, value, texture, a, b ) {   
+	function poke( x, y, value, texture ) {   
 		gl.bindTexture( gl.TEXTURE_2D, texture )
   
 		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D
