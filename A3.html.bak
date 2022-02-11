@@ -281,7 +281,7 @@
 		x, y, 1, 1,
 		gl.RGBA, gl.FLOAT,
 		// is supposed to be a typed array
-		new Float32Array([ a, b, 0.0, 1.0 ])
+		new Float32Array([ a, 0.0, 0.0, b ])
 		)
 	
 	}
@@ -333,7 +333,7 @@
 					&& j >= Math.floor(dimensions.height / 4)
 					&& j <= Math.floor(dimensions.height * 3 / 4)){
 					
-					tempA = 0.0
+					tempA = 1.0
 					tempB = 1.0
 				}
 				poke( i, j, tempA, tempB, textureBack )
