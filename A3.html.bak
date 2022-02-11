@@ -273,7 +273,7 @@
 	
 	function poke( x, y, a, b, texture ) {   
 		gl.bindTexture( gl.TEXTURE_2D, texture )
-  
+		
 		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D
 		gl.texSubImage2D( 
 		gl.TEXTURE_2D, 0, 
