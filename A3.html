@@ -5,14 +5,12 @@
   </head>
   <body>
     <canvas id='gl'></canvas>
-	<p style="color:white;">dA:</p>
 	<p id="dA-display" style="color:white;"></p>
-	<p style="color:white;">dB:</p>
 	<p id="dB-display" style="color:white;"></p>
-	<p style="color:white;">feedRate:</p>
 	<p id="fRate-display" style="color:white;"></p>
-	<p style="color:white;">killRate:</p>
 	<p id="kRate-display" style="color:white;"></p>
+	<p id="dABias-display" style="color:white;">dA Axis Bias:</p>
+	<p id="dBBias-display" style="color:white;">dB Axis Bias:</p>
   </body>
   <!-- vertex shader, as simple as possible -->
   <script id='vertex' type='x-shader/x-vertex'>
@@ -38,6 +36,9 @@
 		uniform float dB;
 		uniform float feedRate;
 		uniform float killRate;
+		
+		uniform int dAMagnetMode;
+		uniform int dBMagnetMode;
   
 		// look up individual cell values 
 		float getA(int x, int y) {
@@ -74,22 +75,41 @@
 			return sumB;
 		}
 		
+		float dAMultiplier() {
+			if(dAMagnetMode == 1){ // Axis bias is set to horizontal
+				return 1.0 + (abs((gl_FragCoord.x / resolution.x) - 0.5));
+			}
+			else if(dAMagnetMode == 2) { // Axis bias is set to vertical
+				return 1.0 + (abs((gl_FragCoord.y / resolution.y) - 0.5));
+			}
+			else return 1.0; // Axis bias is disabled
+		}
+		
+		float dBMultiplier() {
+			if(dBMagnetMode == 1) {
+				return 1.0 + (abs((gl_FragCoord.x / resolution.x) - 0.5));
+			}
+			else if(dBMagnetMode == 2) {
+				return 1.0 + (abs((gl_FragCoord.y / resolution.y) - 0.5));
+			}
+			else return 1.0;
+		}
+		
 		void main() {
 			// get sum of all surrounding nine neighbors for both A and B values
 			float a = getA(0,0);
 			float b = getB(0,0);
 			
 			a = a + 
-				((dA *  laplaceA()) - 
+				(((dA * dAMultiplier())	*  laplaceA()) - 
 					(a * b * b) + 
 					(feedRate * (1.0 - a))) * 1.0;
 			b = b + 
-				((dB *  laplaceB()) + 
+				(((dB * dBMultiplier()) *  laplaceB()) + 
 					(a * b * b) - 
 					((killRate + feedRate) * b)) * 1.0;
 			
-			a = max(a, 1.0);
-			b = max(b, 1.0);
+			
 			gl_FragColor = vec4(a, 0.0, 0.0, b );
 		}
   </script>
@@ -116,8 +136,9 @@
         dimensions = { width:null, height:null }
 		
 	let dA = 1.0, dB = 0.5, fRate = 0.055, kRate = 0.062
-	let udA, udB, uFRate, uKRate
-	let dADisplay, dBDisplay, fRDisplay, kRDisplay
+	let udA, udB, uFRate, uKRate, udAMagnetMode, udBMagnetMode
+	let dADisplay, dBDisplay, fRDisplay, kRDisplay, dABiasDisplay, dBBiasDisplay
+	let dAMagnetMode = 0, dBMagnetMode = 0;
 
     window.onload = function() {
       const canvas = document.getElementById( 'gl' )
@@ -130,6 +151,8 @@
 	  dBDisplay = document.getElementById("dB-display")
 	  fRDisplay = document.getElementById("fRate-display")
 	  kRDisplay = document.getElementById("kRate-display")
+	  dABiasDisplay = document.getElementById("dABias-display")
+	  dBBiasDisplay = document.getElementById("dBBias-display")
       
       // define drawing area of webgl canvas. bottom corner, width / height
       // XXX can't remember why we need the *2!
@@ -144,10 +167,38 @@
     }
 	
 	function refreshDisplay() {
-		dADisplay.innerHTML = dA
-		dBDisplay.innerHTML = dB
-		fRDisplay.innerHTML = fRate
-		kRDisplay.innerHTML = kRate
+		dADisplay.innerHTML = "dA:     " + dA
+		dBDisplay.innerHTML = "dB:     " + dB
+		fRDisplay.innerHTML = "Feed Rate:      " + fRate
+		kRDisplay.innerHTML = "Kill Rate:      " + kRate
+		
+		switch(dAMagnetMode){
+			case 0:
+				dABiasDisplay.innerHTML = "dA Axis Bias: Disabled"
+				break
+			case 1:
+				dABiasDisplay.innerHTML = "dA Axis Bias: Horizontal"
+				break
+			case 2:
+				dABiasDisplay.innerHTML = "dA Axis Bias: Vertical"
+				break
+			default:
+				dABiasDisplay.innerHTML = "dA Axis Bias: Disabled"
+		}
+		
+		switch(dBMagnetMode){
+			case 0:
+				dBBiasDisplay.innerHTML = "dB Axis Bias: Disabled"
+				break
+			case 1:
+				dBBiasDisplay.innerHTML = "dB Axis Bias: Horizontal"
+				break
+			case 2:
+				dBBiasDisplay.innerHTML = "dB Axis Bias: Vertical"
+				break
+			default:
+				dBBiasDisplay.innerHTML = "dB Axis Bias: Disabled"
+		}
 	}
     
     function makeBuffer() {
@@ -231,6 +282,8 @@
 	  udB = gl.getUniformLocation( simulationProgram, 'dB' )
 	  uFRate = gl.getUniformLocation( simulationProgram, 'feedRate' )
 	  uKRate = gl.getUniformLocation( simulationProgram, 'killRate' )
+	  udAMagnetMode = gl.getUniformLocation( simulationProgram, 'dAMagnetMode' )
+	  udBMagnetMode = gl.getUniformLocation( simulationProgram, 'dBMagnetMode' )
       
       //uSimulationState = gl.getUniformLocation( simulationProgram, 'state' )
 
@@ -359,6 +412,8 @@
 	  gl.uniform1f( udB, dB )
 	  gl.uniform1f( uFRate, fRate )
 	  gl.uniform1f( uKRate, kRate )
+	  gl.uniform1i( udAMagnetMode, dAMagnetMode )
+	  gl.uniform1i( udBMagnetMode, dBMagnetMode );
 	  
       gl.bindFramebuffer( gl.FRAMEBUFFER, framebuffer )
       // use the framebuffer to write to our texFront texture
@@ -437,6 +492,20 @@
 			kRate -= 0.005
 			if(kRate < 0.005) kRate = 0.005
 			console.log("killRate decreased");
+		}
+		else if(event.key == 'z') { // Change axis bias mode for dA
+			dAMagnetMode++;
+			if(dAMagnetMode < 0 || dAMagnetMode > 2) dAMagnetMode = 0;
+			if(dAMagnetMode === 0) console.log("dA axis bias disabled")
+			else if (dAMagnetMode === 1) console.log("dA axis bias set to horizontal")
+			else if (dAMagnetMode === 2) console.log("dA axis bias set to vertical")
+		}
+		else if(event.key == 'x') {
+			dBMagnetMode++;
+			if(dBMagnetMode < 0 || dBMagnetMode > 2) dBMagnetMode = 0;
+			if(dBMagnetMode === 0) console.log("dB axis bias disabled")
+			else if (dBMagnetMode === 1) console.log("dB axis bias set to horizontal")
+			else if (dBMagnetMode === 2) console.log("dB axis bias set to vertical")
 		}
 	}
   </script>
