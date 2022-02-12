@@ -77,10 +77,10 @@
 		
 		float dAMultiplier() {
 			if(dAMagnetMode == 1){ // Axis bias is set to horizontal
-				return 1.0 + (abs((gl_FragCoord.x / resolution.x) - 0.5));
+				return 1.0 + ((abs((gl_FragCoord.x / resolution.x) - 0.5)) * 0.2);
 			}
 			else if(dAMagnetMode == 2) { // Axis bias is set to vertical
-				return 1.0 + (abs((gl_FragCoord.y / resolution.y) - 0.5));
+				return 1.0 + ((abs((gl_FragCoord.y / resolution.y) - 0.5)) * 0.2);
 			}
 			else return 1.0; // Axis bias is disabled
 		}
@@ -455,22 +455,22 @@
 	window.onkeypress = function(e){
 		if(event.key == 'q') {  // Increase dA when pressed
 			dA += 0.01
-			if(dA > 2.0) dA = 2.0
+			if(dA > 1.15) dA = 1.15
 			console.log("dA increased");
 		}
 		else if(event.key == 'a') { // Decrease dA when pressed
 			dA -= 0.01
-			if(dA < 1.0) dA = 1.0
+			if(dA < 0.85) dA = 0.85
 			console.log("dA decreased");
 		}
 		else if(event.key == 'w') {  // Increase dB when pressed
 			dB += 0.01
-			if(dB > 1.0) dB = 1.0
+			if(dB > 0.65) dB = 0.65
 			console.log("dB increased");
 		}
 		else if(event.key == 's') { // Decrease dB when pressed
 			dB -= 0.01
-			if(dB < 0.1) dB = 0.1
+			if(dB < 0.35) dB = 0.35
 			console.log("dB decreased");
 		}
 		else if(event.key == 'e') {  // Increase feedRate when pressed

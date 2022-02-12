@@ -1,0 +1,23 @@
+Geoffrey Garsson
+CS420x Assignment 3
+
+First step was just understanding the algorithm; not exactly that hard to do. You got your diffuse rates for both chemicals, the rate of which chemical As are added, and chemical Bs are killed.
+The main struggle honestly wasn't understanding the formula, but rather translating it into GLSL. The Laplace functions were pretty straightforward, and the get function was basically already provided.
+I used the red channel for chemical A and the alpha channel for chemical B. I actually got the formula down almost immediately, it was everything else around it that I struggled with.
+Making a starting scenario isn't my forte, so I opted for a simple 48x48 box that starts in the center of the screen. Originally I had a random chemical scattering scenario but for testing purposes I disabled it.
+The rest of the technical struggle just came from actually changing around the WebGL code with Professor Roberts' revisions that he gave to everyone. 
+I'd end up forgetting to change one value when I'm testing and suddenly the whole thing blows up.
+Anyways, for the final extra component, I opted to go with an "Orientation" modifier by adding a feature that modifies the diffuse values the further away from the center on a given axis a chemical is.
+Its a bit weird, but changing the axis bias on the fly with the push of a button can alter the pattern created in pretty interesting ways. I ended up making a neat turtle-like glyph by manipulating this mechanic.
+Admittedly, it is not without fault. The dA axis bias completely blacks out the screen almost instantly when a chemical goes far enough from the screen, due to how the pixel coloring is impacted by the chemical values.
+To make a quick fix to this, I had to cut how much dA was impacted by the axis bias by a significant amount. Additionally, I couldn't really find good wording for all of this, so "axis bias" is probably not the proper term.
+
+I handed this in late and I didn't get feedback. That's almost entirely on me.
+
+Anyways, the controls are:
+
+Press 'q/a': Increase/Decrease dA by 0.01 (min: 0.85, max: 1.15)
+Press 'w/s': Increase/Decrease dB by 0.01 (min: 0.35, max: 0.65)
+Press 'e/d': Increase/Decrease Feed Rate by 0.005 (min: 0.005, max: 0.1)
+Press 'r/f': Increase/Decrease Kill Rate by 0.005 (min: 0.005, max: 0.1)
+Press 'z/x': Toggles which axis the "Axis Bias" feature is on for dA (for 'z') and dB (for 'x'). (Starts on Disabled -> Horizontal -> Vertical -> Disabled)

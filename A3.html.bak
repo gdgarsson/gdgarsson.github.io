@@ -109,8 +109,7 @@
 					(a * b * b) - 
 					((killRate + feedRate) * b)) * 1.0;
 			
-			//a = max(a, 1.0);
-			//b = max(b, 1.0);
+			
 			gl_FragColor = vec4(a, 0.0, 0.0, b );
 		}
   </script>
@@ -456,22 +455,22 @@
 	window.onkeypress = function(e){
 		if(event.key == 'q') {  // Increase dA when pressed
 			dA += 0.01
-			if(dA > 2.0) dA = 2.0
+			if(dA > 1.15) dA = 1.15
 			console.log("dA increased");
 		}
 		else if(event.key == 'a') { // Decrease dA when pressed
 			dA -= 0.01
-			if(dA < 1.0) dA = 1.0
+			if(dA < 0.85) dA = 0.85
 			console.log("dA decreased");
 		}
 		else if(event.key == 'w') {  // Increase dB when pressed
 			dB += 0.01
-			if(dB > 1.0) dB = 1.0
+			if(dB > 0.65) dB = 0.65
 			console.log("dB increased");
 		}
 		else if(event.key == 's') { // Decrease dB when pressed
 			dB -= 0.01
-			if(dB < 0.1) dB = 0.1
+			if(dB < 0.35) dB = 0.35
 			console.log("dB decreased");
 		}
 		else if(event.key == 'e') {  // Increase feedRate when pressed
