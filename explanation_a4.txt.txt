@@ -1,0 +1,28 @@
+Geoffrey Garsson
+CS420x Assignment 4
+
+I'm not  going to lie, this is hands down the hardest project I've ever done for this class, and its honestly not even much.
+
+Preset 1 is a rather interesting preset which usually turns ends up forming a plant-cell like pattern. That's literally all I found interesting.
+I don't know how to explain Preset 2, honestly, it just had an interesting tendency to always result in a massive vertical stream of agents, usually on the sides of the screen.
+Preset 3... I don't really know how to explain it. I just cranked up the scanner distance on the right and enabled the sweep mode for the scanner.
+	It had some interesting patterns produced from it, like a tilted-right blob, or even a human heart shape (not the <3 one, the biological one).
+Presets 4 and 5 (yes, I went for 5) are literally just "everything is turned up/down to the maximum/minimum."
+
+I'm gonna keep it real, I genuinely didn't know what the heck I was doing for most of this project, and I was so stressed with life and work that this project suffered immensely.
+Hands down, my worst work for this class. I would not at all be surprised if I get an F on this assignment, and if my grade tanked because of it. 
+Most of my skills lie in tool-building, not in the creative components that come from those tools. 
+I understand that this was part of the assignment, but I genuinely struggle with visual art and telling meaningful differences.
+
+I handed this in late and I didn't get feedback, once again.
+
+The controls are:
+
+Press 'q/a': Increase/Decrease Left Sensor Distance by 1.0 (min: 1.0, max: 15.0)
+Press 'w/s': Increase/Decrease Forward Sensor Distance by 1.0 (min: 1.0, max: 15.0)
+Press 'e/d': Increase/Decrease Right Sensor Distance by 1.0 (min: 1.0, max: 15.0)
+Press 'spacebar': Toggles "Scanner Sweeper" for Agents (When active, the scanner direction and agent rotation angle will be adjusted once per frame by small increments,
+								maximum rotation angle is PI/4, minimum is PI/8, takes 180 frames to go from one to the other)
+Press 'm/n': Increase/Decrease Agent Size by 0.2 (min: 0.2, max: 3.0)
+Press ',/.': Increase/Decrease Decay Coefficient by 0.05 (min: 0.3, max: 0.9)
+Press 'b': Changes which blur kernel the diffuse/decay shader uses. (Presets 1,4,5 start on Laplacian, 2 and 3 start on Gaussian)

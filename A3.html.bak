@@ -77,10 +77,10 @@
 		
 		float dAMultiplier() {
 			if(dAMagnetMode == 1){ // Axis bias is set to horizontal
-				return 1.0 + (abs((gl_FragCoord.x / resolution.x) - 0.5));
+				return 1.0 + ((abs((gl_FragCoord.x / resolution.x) - 0.5)) * 0.5);
 			}
 			else if(dAMagnetMode == 2) { // Axis bias is set to vertical
-				return 1.0 + (abs((gl_FragCoord.y / resolution.y) - 0.5));
+				return 1.0 + ((abs((gl_FragCoord.y / resolution.y) - 0.5)) * 0.5);
 			}
 			else return 1.0; // Axis bias is disabled
 		}

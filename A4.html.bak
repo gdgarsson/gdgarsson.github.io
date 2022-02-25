@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <style>body{ margin:0; background: black; }</style>
+  </head>
+  <body>
+    <canvas id='gl'></canvas>
+  </body>
+
+  <script id='copyVertex' type='x-shader/x-vertex'>#version 300 es
+    in vec2 a_pos;
+
+    void main() {
+      gl_Position = vec4( a_pos, 0, 1 );
+    }
+  </script>
+
+  <!-- render to screen shader -->
+  <script id='copyFragment' type='x-shader/x-fragment'>#version 300 es
+    #ifdef GL_ES
+    precision mediump float;
+    #endif
+
+    uniform sampler2D uSampler;
+    uniform vec2 resolution;
+
+    out vec4 color;
+    void main() {
+      vec2 pos = gl_FragCoord.xy / resolution;
+      vec4 tex = texture( uSampler, pos );
+      color = vec4( tex.rgb, 1. );
+    }
+  </script>
+
+  <script id='simulationVertex' type='x-shader/x-vertex'>#version 300 es
+    #define PI_4 3.1415926538/4.
+	#define PI_8 3.14159265368/8.
+    precision mediump float;
+    
+    // input from our feedback TRANSFORM_FEEDBACK
+    in vec4 a_pos;
+    
+    uniform vec2 resolution;
+	
+	uniform float time;
+	
+	// "Boolean" for Side Scanner Sweep Mode
+	uniform int scanSweepMode;
+	
+	// Size of each agent
+	// NOTE: This uses gl_PointSize to accomplish
+	uniform float agentSize;
+	
+	// sensor distances for the left, right, and forward
+	uniform float leftSD ;
+	uniform float rightSD;
+	uniform float forwardSD;
+	
+	// The "angle" modifier for the Side Scanner Sweep Mode
+	// Starts at 0.0, can go to PI/8
+	float scanSweepAngleMod = 0.0;
+	
+	// The number of frames it takes for the Side Scanner Sweep Mode to complete a "sweep"
+	// NOTE: WebGL typically runs at 60 FPS in a browser. I.E. 120.0 = 2.0 seconds
+	// This is technically changing the rotation angle over time due to the math done in
+	//   the modifyScanSweepAngle() function
+	float scanSweepFrames = 180.0;
+	
+	// "Sweep" direction; 0 is narrower, 1 is wider
+	int scanSweepDirection = 0;
+	
+    // our chemical layer
+    uniform sampler2D uSampler;
+    
+    // the output of our feedback transform
+    // xy will store our position
+    // zw wiil store our heading / direction
+    out vec4 o_vpos;
+    
+    // this function accepts a direction (header) for a
+    // agent and a rotation in radians, returning the
+    // new, rotated direction
+    vec2 rotate(vec2 dir, float angle) {
+      float  s = sin( angle );
+      float  c = cos( angle );
+      mat2   m = mat2( c, -s, s, c );
+      return m * dir;
+    }
+    
+    // pos - position of agent
+    // dir - heading of agent
+    // angle - direction to sense, in radians
+    // distance - distance to sense
+    float readSensor( vec2 pos, vec2 dir, float angle, vec2 distance ) {
+      vec2 newangle  = rotate( dir, angle  );
+      vec2 offset = newangle * distance;
+      return texture( uSampler, pos + offset ).r;
+    }
+	
+	void modifyScanSweepAngle(){
+		if(scanSweepMode == 1) { // ONLY Modify if scanSweepMode == 1
+			if(scanSweepDirection == 0) {
+				scanSweepAngleMod += (PI_8/scanSweepFrames);
+				if (scanSweepAngleMod > PI_8) {
+					scanSweepAngleMod = PI_8;
+					scanSweepDirection = 1;
+				}
+			}
+			else {
+				scanSweepAngleMod -= (PI_8/scanSweepFrames);
+				if(scanSweepAngleMod < 0.) {
+					scanSweepAngleMod = 0.;
+					scanSweepDirection = 0;
+				}
+			}
+		}
+	}
+    
+    void main() {
+      // get normalied height / width of a single pixel 
+      vec2 pixel = 1. / resolution;
+    
+      // how far ahead should sensing occur? this is fun to play with
+      vec2 sensorDistance = pixel * 9.;
+    
+      // normalize our {-1,1} vertex coordinates to {0,1} for texture lookups
+      vec2 pos = (1. + a_pos.xy) / 2.;
+    
+      // read sensor informatino at different angles
+      float left     = readSensor( pos, a_pos.zw, -PI_4 + scanSweepAngleMod, sensorDistance );
+      float forward  = readSensor( pos, a_pos.zw, 0.,    sensorDistance );
+      float right    = readSensor( pos, a_pos.zw, PI_4 - scanSweepAngleMod,  sensorDistance );
+      
+      // initialize feedback transform output
+      o_vpos = a_pos;
+    
+      // if most chemical is found to left... 
+      if( left > forward && left > right ) {
+        // check for scanSweepMode
+		// either way, rotate left and store in .zw
+		if(scanSweepMode == 1) {
+		  o_vpos.zw = rotate( o_vpos.zw, -PI_4 + scanSweepAngleMod );
+		}
+		else {
+		  o_vpos.zw = rotate( o_vpos.zw, -PI_4 );
+		}
+      }else if( right > left && right > forward ) { // chemical is to the right
+        // Same thing again, on the other side
+		if(scanSweepMode == 1) {
+		  o_vpos.zw = rotate( o_vpos.zw, PI_4 - scanSweepAngleMod);
+		}
+		else {
+		  o_vpos.zw = rotate( o_vpos.zw, PI_4 );
+		}
+		
+      }else if ( right == left ) { // randomly pick a direction
+        float rand = fract(sin(a_pos.x)*100000.0);
+        if( rand > .5 ) { // Rotate right
+          if(scanSweepMode == 1) {
+		    o_vpos.zw = rotate( o_vpos.zw, PI_4 - scanSweepAngleMod);
+		  }
+		  else {
+		    o_vpos.zw = rotate( o_vpos.zw, PI_4 );
+		  }
+        }else{ // Rotate left
+          if(scanSweepMode == 1) {
+		    o_vpos.zw = rotate( o_vpos.zw, -PI_4 + scanSweepAngleMod );
+		  }
+		  else {
+		    o_vpos.zw = rotate( o_vpos.zw, -PI_4 );
+		  }
+        }
+      } // else keep going the same direction, no change required
+      
+      // move our agent in our new direction by one pixel
+      o_vpos.xy += o_vpos.zw * pixel;
+      
+      gl_PointSize = agentSize;
+    
+      // position is for fragment shader rendering, don't need to include heading
+      gl_Position = vec4( a_pos.x, a_pos.y, 0., 1. );
+    }
+  </script>
+
+  <script id='simulationFragment' type='x-shader/x-fragment'>#version 300 es
+	precision mediump float;
+	
+	uniform int agentColorSelect;
+	
+	vec3 white = vec3(1.);
+	vec3 red = vec3(1., 0., 0.);
+	vec3 blue = vec3(0., 1., 0.);
+	vec3 green = vec3(0., 0., 1.);
+	vec3 purple = vec3(1., 1., 0.);
+
+	out vec4 o_frag;
+	void main() {
+	  vec3 agentColor;
+	  if(agentColorSelect == 1) agentColor = red;
+	  else if(agentColorSelect == 2) agentColor = blue;
+	  else if(agentColorSelect == 3) agentColor = green;
+	  else if(agentColorSelect == 4) agentColor = purple;
+	  else agentColor = white;
+	
+      o_frag = vec4( agentColor, .1 );
+	} 
+  </script>
+  
+  <script id='ddFragment' type='x-shader/x-fragment'>#version 300 es
+    #ifdef GL_ES
+    precision mediump float;
+    #endif  
+  
+    uniform sampler2D uSampler;
+    uniform vec2 resolution;
+	uniform float decay;
+	uniform int kernelMode;
+  
+    float get(int x, int y) {
+      return texture( uSampler, ( gl_FragCoord.xy + vec2(x, y) ) / resolution ).r;
+    }
+	
+	float laplace() {
+		float sum = get(0,0) * 1.;
+			  sum += get(-1,0)  *  .2;
+			  sum += get(-1,-1) *  .05;
+			  sum += get(0,-1)  *  .2;
+			  sum += get(1,-1)  *  .05;       
+			  sum += get(1,0)   *  .2;
+			  sum += get(1,1)   *  .05;
+			  sum += get(0,1)   *  .2;
+			  sum += get(-1,1)  *  .05;
+		
+		return sum;
+	}
+	
+	float gaussian() {
+		float sum =  get(0,0) * .25;
+			  sum += get(-1,0)  *  .125;
+			  sum += get(-1,-1) *  .0625;
+			  sum += get(0,-1)  *  .125;
+			  sum += get(1,-1)  *  .0625;       
+			  sum += get(1,0)   *  .125;
+			  sum += get(1,1)   *  .0625;
+			  sum += get(0,1)   *  .125;
+			  sum += get(-1,1)  *  .0625;
+		
+		return sum;
+	}
+  
+    out vec4 color;
+    void main() {
+	  float sum = 0.;
+	  if(kernelMode == 1) {
+		sum = laplace();
+	  }
+	  else if(kernelMode == 2) {
+		sum = gaussian();
+	  }
+	  
+      vec2 pos = gl_FragCoord.xy / resolution;
+      vec4 tex = texture( uSampler, pos );
+      color = vec4( vec3(sum * decay), .25 );
+    }
+  </script>
+
+  <script type='text/javascript'>
+    // "global" variables
+    let gl, uTime, uRes, transformFeedback, 
+        buffer1, buffer2, simulationPosition, copyPosition, ddPosition,
+        textureBack, textureFront, framebuffer,
+        copyProgram, simulationProgram, ddProgram, quad,
+        dimensions = { width:null, height:null },
+        agentCount = 1000000
+	
+	let preset = 1;
+	
+	let time = 0
+	let lSD = 1.0, rSD = 1.0, fSD = 1.0
+	let agentSize = 1.0;
+	let agentColor = 0;
+	let scanSweepMode = false
+	let decayCoefficient = .9
+	let kernelMode = 1; // Determines which blur kernel is used in the decay/diffuse shader
+	
+	let uLSD, uRSD, uFSD, uSweepMode, uAgentSize, uAgentColor,
+		uDecay, uKernalMode	
+	
+    window.onload = function() {
+	  let presetInput = prompt("Input Preset (Options: 1-5)")
+	  
+	  if(presetInput == "2") {
+		preset = 2;
+		preset2();
+	  }
+	  else if(presetInput == "3") {
+		preset = 3;
+		preset3();
+	  }
+	  else if(presetInput == "4") {
+		preset = 4;
+		preset4();
+	  }
+	  else if(presetInput == "5") {
+		preset = 5;
+		preset5();
+	  }
+	  else {
+		preset = 1;
+		preset1();
+	  }
+	  
+	  console.log("Using Preset " + preset);
+	  
+      const canvas = document.getElementById( 'gl' )
+      gl = canvas.getContext( 'webgl2' )
+      const dim = window.innerWidth < window.innerHeight ? window.innerWidth : window.innerHeight
+      canvas.width  = dimensions.width  = dim
+      canvas.height = dimensions.height = dim 
+
+      // define drawing area of canvas. bottom corner, width / height
+      gl.viewport( 0,0,gl.drawingBufferWidth, gl.drawingBufferHeight )
+
+      makeCopyPhase()
+      makeSimulationPhase()
+      makeTextures()
+	  makeDecayDiffusePhase()
+	  makeInteractiveUniforms()
+      render()
+    }
+	
+	/*
+	Properties Boundaries:
+		Sensor Distance: { 1.0, 15.0 } (Increments by 1.0)
+		Agent Size: { 0.2, 3.0 } (Increments by 0.2)
+		Decay Coefficient: { 0.3, 0.9 } (Increments by 0.05)
+		Blur Kernals: [ 1 (Laplacian), 2 (Gaussian) ]
+	*/
+	
+	
+	// Preset 1: Aka "The Plant Cell"
+	//   This preset usually results in a plant-cell like box that sustains itself
+	//     for quite a while.
+	function preset1() {
+	  lSD = 3.0, rSD = 3.0, fSD = 12.0
+	  agentSize = 2.0;
+	  agentColor = 0;
+	  scanSweepMode = false
+	  decayCoefficient = .7
+	  kernelMode = 1;
+	}
+	
+	
+	// Preset 2:
+	//   This one has an interesting tendency to always make vertical lines
+	//     of agents, typically on the sides of the screens. It may take a bit,
+	//     but it almost always results in vertical lines.
+	function preset2() {
+	  lSD = 10.0, rSD = 10.0, fSD = 1.0
+	  agentSize = 1.0;
+	  agentColor = 0;
+	  scanSweepMode = false
+	  decayCoefficient = .4
+	  kernelMode = 2;
+	}
+	
+	// Preset 3:
+	//   Honestly, this preset just had a weird tendency to create interesting shapes.
+	//     A few times it'd be a heart (biology-shaped, not the <3 drawing we all know),
+	//       then next it'd be a blob leaning to the right of the screen.
+	//     I guess it helps that I cranked the right side scanner up to 15 and lowered
+	//       the rest while enabling the side-sweep scanner mode.
+	function preset3() {
+	  lSD = 1.0, rSD = 15.0, fSD = 1.0
+	  agentSize = 0.6;
+	  agentColor = 0;
+	  scanSweepMode = true
+	  decayCoefficient = .5
+	  kernelMode = 2;
+	}
+	
+	// Preset 4:
+	//   I just cranked all of the fields down to their minimums and just figured I'd see what'd happen
+	function preset4() {
+	  lSD = 1.0, rSD = 1.0, fSD = 1.0
+	  agentSize = 0.2;
+	  agentColor = 0;
+	  scanSweepMode = false
+	  decayCoefficient = .9
+	  kernelMode = 1;
+	}
+	
+	// Preset 5:
+	//   I just cranked all of the fields up to their maximums and just figured I'd see what'd happen
+	function preset5() {
+	  lSD = 15.0, rSD = 15.0, fSD = 15.0
+	  agentSize = 3.0;
+	  agentColor = 0;
+	  scanSweepMode = true
+	  decayCoefficient = .3
+	  kernelMode = 1;
+	}
+
+    function makeCopyPhase() {
+      makeCopyShaders()
+      quad = makeCopyBuffer()
+      makeCopyUniforms()
+    }
+
+    function makeCopyShaders() {
+      let shaderScript = document.getElementById('copyVertex')
+      let shaderSource = shaderScript.text
+      let vertexShader = gl.createShader( gl.VERTEX_SHADER )
+      gl.shaderSource( vertexShader, shaderSource )
+      gl.compileShader( vertexShader )
+
+      // create fragment shader
+      shaderScript = document.getElementById('copyFragment')
+      shaderSource = shaderScript.text
+      const drawFragmentShader = gl.createShader( gl.FRAGMENT_SHADER )
+      gl.shaderSource( drawFragmentShader, shaderSource )
+      gl.compileShader( drawFragmentShader )
+      console.log( gl.getShaderInfoLog(drawFragmentShader) )
+
+      // create shader program  
+      copyProgram = gl.createProgram()
+      gl.attachShader( copyProgram, vertexShader )
+      gl.attachShader( copyProgram, drawFragmentShader )
+      
+      gl.linkProgram( copyProgram )
+      gl.useProgram( copyProgram )
+    }
+
+    function makeCopyBuffer() {
+      // create a buffer object to store vertices
+      const buffer = gl.createBuffer()
+
+      // point buffer at graphic context's ARRAY_BUFFER
+      gl.bindBuffer( gl.ARRAY_BUFFER, buffer )
+
+      const triangles = new Float32Array([
+        -1, -1,
+         1, -1,
+        -1,  1,
+        -1,  1,
+         1, -1,
+         1,  1
+      ])
+
+      // initialize memory for buffer and populate it. Give
+      // open gl hint contents will not change dynamically.
+      gl.bufferData( gl.ARRAY_BUFFER, triangles, gl.STATIC_DRAW )
+
+      return buffer
+    }
+
+    function makeCopyUniforms() {
+      uRes = gl.getUniformLocation( copyProgram, 'resolution' )
+      gl.uniform2f( uRes, dimensions.width, dimensions.height )
+
+      // get position attribute location in shader
+      copyPosition = gl.getAttribLocation( copyProgram, 'a_pos' )
+      // enable the attribute
+      gl.enableVertexAttribArray( copyPosition )
+      // this will point to the vertices in the last bound array buffer.
+      // In this example, we only use one array buffer, where we're storing 
+      // our vertices. Each vertex will have to floats (one for x, one for y)
+      gl.vertexAttribPointer( copyPosition, 2, gl.FLOAT, false, 0,0 )
+    }
+
+    function makeSimulationPhase(){
+      makeSimulationShaders()
+      makeSimulationBuffer()
+      makeSimulationUniforms()
+    }
+
+    function makeSimulationShaders() {
+      let shaderScript = document.getElementById('simulationVertex')
+      let shaderSource = shaderScript.text
+      let vertexShader = gl.createShader( gl.VERTEX_SHADER )
+      gl.shaderSource( vertexShader, shaderSource )
+      gl.compileShader( vertexShader )
+
+      // create fragment shader
+      shaderScript = document.getElementById('simulationFragment')
+      shaderSource = shaderScript.text
+      const simulationFragmentShader = gl.createShader( gl.FRAGMENT_SHADER )
+      gl.shaderSource( simulationFragmentShader, shaderSource )
+      gl.compileShader( simulationFragmentShader )
+      console.log( gl.getShaderInfoLog(simulationFragmentShader) )
+      
+      // create render program that draws to screen
+      simulationProgram = gl.createProgram()
+      gl.attachShader( simulationProgram, vertexShader )
+      gl.attachShader( simulationProgram, simulationFragmentShader )
+
+      transformFeedback = gl.createTransformFeedback()
+      gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback)
+      gl.transformFeedbackVaryings( simulationProgram, ["o_vpos"], gl.SEPARATE_ATTRIBS )
+
+      gl.linkProgram( simulationProgram )
+      gl.useProgram(  simulationProgram )
+    }
+
+    function makeSimulationBuffer() {
+	  // create a buffer object to store vertices
+	  buffer1 = gl.createBuffer()
+	  buffer2 = gl.createBuffer()
+
+	  // we’re using a vec4
+	  const agentSize = 4
+	  const buffer = new Float32Array( agentCount * agentSize )
+	
+	  // set random positions / random headings
+	  for (let i = 0; i < agentCount * agentSize; i+= agentSize ) {
+		buffer[i]   = -1 + Math.random() * 2
+		buffer[i+1] = -1 + Math.random() * 2
+		buffer[i+2] = Math.random()
+		buffer[i+3] = Math.random()
+	  }
+
+	  gl.bindBuffer( gl.ARRAY_BUFFER, buffer1 )
+
+	  gl.bufferData( 
+		gl.ARRAY_BUFFER, 
+		buffer, 
+		gl.DYNAMIC_COPY 
+	  )
+
+	  gl.bindBuffer( gl.ARRAY_BUFFER, buffer2 )
+
+	  gl.bufferData( gl.ARRAY_BUFFER, agentCount*16, gl.DYNAMIC_COPY )
+
+	  gl.enable(gl.BLEND);
+	  gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+	}
+
+    function makeSimulationUniforms() {
+      uRes = gl.getUniformLocation( simulationProgram, 'resolution' )
+      gl.uniform2f( uRes, gl.drawingBufferWidth, gl.drawingBufferHeight )
+	  
+	  uTime = gl.getUniformLocation( simulationProgram, 'time' )
+	  
+      // get position attribute location in shader
+      simulationPosition = gl.getAttribLocation( simulationProgram, 'a_pos' )
+      // enable the attribute
+      gl.enableVertexAttribArray( simulationPosition )
+
+      gl.vertexAttribPointer( simulationPosition, 4, gl.FLOAT, false, 0,0 )
+    }
+
+    function makeTextures() {
+      textureBack = gl.createTexture()
+      gl.bindTexture( gl.TEXTURE_2D, textureBack )
+      
+      // these two lines are needed for non-power-of-2 textures
+      gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE )
+      gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE )
+      
+      // how to map when texture element is less than one pixel
+      // use gl.NEAREST to avoid linear interpolation
+      gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST )
+      // how to map when texture element is more than one pixel
+      gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+      
+      // specify texture format, see https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
+      gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, dimensions.width, dimensions.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null )
+  
+      textureFront = gl.createTexture()
+      gl.bindTexture( gl.TEXTURE_2D, textureFront )
+      gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE )
+      gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE )
+      gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST )
+      gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST )
+      gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, dimensions.width, dimensions.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null )
+
+      // Create a framebuffer and attach the texture.
+      framebuffer = gl.createFramebuffer()
+    }
+	
+	function makeDecayDiffusePhase() {
+      makeDecayDiffuseShaders()
+      makeDecayDiffuseUniforms()
+	}
+	
+	function makeDecayDiffuseShaders() {
+	  let shaderScript = document.getElementById('copyVertex')
+	  let shaderSource = shaderScript.text
+	  let vertexShader = gl.createShader( gl.VERTEX_SHADER )
+	  gl.shaderSource( vertexShader, shaderSource )
+	  gl.compileShader( vertexShader )
+	  
+	  // create fragment shader
+	  shaderScript = document.getElementById('ddFragment')
+	  shaderSource = shaderScript.text
+	  const drawFragmentShader = gl.createShader( gl.FRAGMENT_SHADER )
+	  gl.shaderSource( drawFragmentShader, shaderSource )
+	  gl.compileShader( drawFragmentShader )
+	  console.log( gl.getShaderInfoLog(drawFragmentShader) )
+	  
+	  // create shader program  
+	  ddProgram = gl.createProgram()
+	  gl.attachShader( ddProgram, vertexShader )
+	  gl.attachShader( ddProgram, drawFragmentShader )
+	  
+	  gl.linkProgram( ddProgram )
+	  gl.useProgram( ddProgram )
+	}
+	
+	function makeDecayDiffuseUniforms() {
+      uResDD = gl.getUniformLocation( ddProgram, 'resolution' )
+      gl.uniform2f( uResDD, dimensions.width, dimensions.height )
+	  uDecay = gl.getUniformLocation( ddProgram, 'decay' )
+	  uKernelMode = gl.getUniformLocation( ddProgram, 'kernelMode' );
+	  
+      // get position attribute location in shader
+      ddPosition = gl.getAttribLocation( ddProgram, 'a_pos' )
+      // enable the attribute
+      gl.enableVertexAttribArray( copyPosition )
+      // this will point to the vertices in the last bound array buffer.
+      // In this example, we only use one array buffer, where we're storing 
+      // our vertices. Each vertex will have to floats (one for x, one for y)
+      gl.vertexAttribPointer( copyPosition, 2, gl.FLOAT, false, 0,0 )
+    }
+	
+	function makeInteractiveUniforms() {
+	  uLSD = gl.getUniformLocation( simulationProgram, 'leftSD' )
+	  uRSD = gl.getUniformLocation( simulationProgram, 'rightSD' )
+	  uFSD = gl.getUniformLocation( simulationProgram, 'forwardSD' )
+	  uSweepMode = gl.getUniformLocation( simulationProgram, 'scanSweepMode' )
+	  uAgentSize = gl.getUniformLocation( simulationProgram, 'agentSize' )
+	  uAgentColor = gl.getUniformLocation( ddProgram, 'agentColorSelect' )
+	}
+
+    function render() {
+      window.requestAnimationFrame( render )
+    	
+    	/* AGENT-BASED SIMULATION */
+      gl.useProgram( simulationProgram )
+	  
+	  // update time
+	  time++;
+	  
+	  // update Agent properties
+	  gl.uniform1f( uTime, time )
+	  gl.uniform1f( uLSD, lSD )
+	  gl.uniform1f( uFSD, fSD )
+	  gl.uniform1f( uRSD, rSD )
+	  gl.uniform1f( uAgentSize, agentSize )
+	  gl.uniform1i( uSweepMode, scanSweepMode )
+	  gl.uniform1i( uAgentColor, agentColor )
+    
+      gl.bindFramebuffer( gl.FRAMEBUFFER, framebuffer )
+    
+      // use the framebuffer to write to our textureFront texture
+      gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textureFront, 0 )
+    
+      gl.activeTexture( gl.TEXTURE0 )
+      // read from textureBack in our shaders
+      gl.bindTexture( gl.TEXTURE_2D, textureBack )
+    
+      // bind our array buffer of vants
+      gl.bindBuffer( gl.ARRAY_BUFFER, buffer1 )
+      gl.vertexAttribPointer( simulationPosition, 4, gl.FLOAT, false, 0,0 )
+      gl.bindBufferBase( gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffer2 )
+      
+      gl.beginTransformFeedback( gl.POINTS )  
+      gl.drawArrays( gl.POINTS, 0, agentCount )
+      gl.endTransformFeedback()
+    	/* END Agent-based simulation */
+    
+    	/* SWAP */
+      let _tmp = textureFront
+      textureFront = textureBack
+      textureBack = _tmp
+    
+      /* Decay / Diffuse */
+      gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textureFront, 0 )
+    
+      gl.activeTexture( gl.TEXTURE0 )
+      gl.bindTexture(   gl.TEXTURE_2D, textureBack )
+    
+      gl.useProgram( ddProgram )
+	  
+	  // update Decay / Diffuse uniforms
+	  gl.uniform1f( uDecay, decayCoefficient )
+	  
+	  
+      gl.bindBuffer( gl.ARRAY_BUFFER, quad )
+      gl.vertexAttribPointer( ddPosition, 2, gl.FLOAT, false, 0,0 )
+    
+      gl.drawArrays( gl.TRIANGLES, 0, 6 )
+      /* END Decay / Diffuse */
+    
+      /* COPY TO SCREEN */
+      // use the default framebuffer object by passing null
+      gl.bindFramebuffer( gl.FRAMEBUFFER, null )
+      gl.viewport( 0,0,gl.drawingBufferWidth, gl.drawingBufferHeight )
+
+      gl.bindTexture( gl.TEXTURE_2D, textureBack )
+
+      // use our drawing (copy) shader
+      gl.useProgram( copyProgram )
+
+      gl.bindBuffer( gl.ARRAY_BUFFER, quad )
+      gl.vertexAttribPointer( copyPosition, 2, gl.FLOAT, false, 0,0 )
+
+      // put simulation on screen
+      gl.drawArrays( gl.TRIANGLES, 0, 6 )
+      /* END COPY TO SCREEN */
+
+	  // swap vertex buffers 
+      let tmp = buffer1;  buffer1 = buffer2;  buffer2 = tmp;
+    }
+	
+	window.onkeypress = function(e){
+		if(event.key == 'q') {  // Increase Left Sensor Distance when pressed
+			lSD += 1.0
+			if(lSD > 15.0) lSD = 15.0
+			console.log("Left Sensor Distance increased");
+		}
+		else if(event.key == 'a') {  // Decrease Left Sensor Distance when pressed
+			lSD -= 1.0
+			if(lSD < 1.0) lSD = 1.0
+			console.log("Left Sensor Distance decreased");
+		}
+		else if(event.key == 'w') {  // Increase Forward Sensor Distance when pressed
+			fSD += 1.0
+			if(fSD > 15.0) fSD = 15.0
+			console.log("Forward Sensor Distance increased");
+		}
+		else if(event.key == 's') {  // Decrease Forward Sensor Distance when pressed
+			fSD -= 1.0
+			if(fSD < 1.0) fSD = 1.0
+			console.log("Forward Sensor Distance decreased");
+		}
+		else if(event.key == 'e') {  // Increase Right Sensor Distance when pressed
+			rSD += 1.0
+			if(rSD > 15.0) rSD = 15.0
+			console.log("Right Sensor Distance increased");
+		}
+		else if(event.key == 'd') {  // Decrease Left Sensor Distance when pressed
+			rSD -= 1.0
+			if(rSD < 1.0) rSD = 1.0
+			console.log("Right Sensor Distance decreased");
+		}
+		else if(event.key == ' ') {  // Toggle "Sweep Mode" for Agents
+			scanSweepMode = !scanSweepMode
+			if(scanSweepMode) console.log("Side Scanner Sweep Mode Enabled")
+			else console.log("Side Scanner Sweep Mode Disabled)")
+		}
+		else if(event.key == 'm') {  // Increase Agent Size
+			agentSize += 0.2;
+			if(agentSize > 3.0) agentSize = 3.0
+			else console.log("Agent Size Increased")
+		}
+		else if(event.key == 'n') {  // Decrease Agent Size
+			agentSize -= 0.2;
+			if(agentSize < 0.2) agentSize = 0.2
+			else console.log("Agent Size Decreased")
+		}
+		else if(event.key == 'b') { // Changes which kernel the Diffuse / Decay shader uses
+			kernelMode += 1;
+			if(kernelMode > 2) kernelMode = 1;
+			
+			if(kernelMode == 1) console.log("Diffuse Kernel changed to Laplacian")
+			else console.log("Diffuse Kernel changed to Gaussian")
+		}
+		else if(event.key == ',') { // Increase Decay Coefficient
+			decayCoefficient += .05;
+			if(decayCoefficient > .9) decayCoefficient = .9
+			console.log("Decay Coefficient increased to " + decayCoefficient)
+		}
+		else if(event.key == '.') { // Decrease Decay Coefficient
+			decayCoefficient -= .05;
+			if(decayCoefficient < .3) decayCoefficient = .3
+			console.log("Decay Coefficient increased to " + decayCoefficient)
+		}
+		/*else if(event.key == 'c') {
+			agentColor += 1;
+			if(agentColor > 4) agentColor = 0;
+			console.log("Agent Color changed");
+		}*/
+	}
+  </script>
+
+</html>
