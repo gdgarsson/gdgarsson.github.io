@@ -127,9 +127,9 @@
       vec2 pos = (1. + a_pos.xy) / 2.;
     
       // read sensor informatino at different angles
-      float left     = readSensor( pos, a_pos.zw, -PI_4 + scanSweepAngleMod, sensorDistance );
-      float forward  = readSensor( pos, a_pos.zw, 0.,    sensorDistance );
-      float right    = readSensor( pos, a_pos.zw, PI_4 - scanSweepAngleMod,  sensorDistance );
+      float left     = readSensor( pos, a_pos.zw, -PI_4 + scanSweepAngleMod, leftSD * pixel );
+      float forward  = readSensor( pos, a_pos.zw, 0.,    forwardSD * pixel );
+      float right    = readSensor( pos, a_pos.zw, PI_4 - scanSweepAngleMod,  rightSD * pixel );
       
       // initialize feedback transform output
       o_vpos = a_pos;
@@ -717,7 +717,7 @@
 		if(event.key == 'q') {  // Increase Left Sensor Distance when pressed
 			lSD += 1.0
 			if(lSD > 15.0) lSD = 15.0
-			console.log("Left Sensor Distance increased" + lSD);
+			console.log("Left Sensor Distance increased to " + lSD);
 		}
 		else if(event.key == 'a') {  // Decrease Left Sensor Distance when pressed
 			lSD -= 1.0

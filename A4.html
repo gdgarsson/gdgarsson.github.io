@@ -120,16 +120,13 @@
       // get normalied height / width of a single pixel 
       vec2 pixel = 1. / resolution;
     
-      // how far ahead should sensing occur? this is fun to play with
-      vec2 sensorDistance = pixel * 9.;
-    
       // normalize our {-1,1} vertex coordinates to {0,1} for texture lookups
       vec2 pos = (1. + a_pos.xy) / 2.;
     
       // read sensor informatino at different angles
-      float left     = readSensor( pos, a_pos.zw, -PI_4 + scanSweepAngleMod, sensorDistance );
-      float forward  = readSensor( pos, a_pos.zw, 0.,    sensorDistance );
-      float right    = readSensor( pos, a_pos.zw, PI_4 - scanSweepAngleMod,  sensorDistance );
+      float left     = readSensor( pos, a_pos.zw, -PI_4 + scanSweepAngleMod, leftSD * pixel );
+      float forward  = readSensor( pos, a_pos.zw, 0.,    forwardSD * pixel );
+      float right    = readSensor( pos, a_pos.zw, PI_4 - scanSweepAngleMod,  rightSD * pixel );
       
       // initialize feedback transform output
       o_vpos = a_pos;
