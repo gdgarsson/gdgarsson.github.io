@@ -717,32 +717,32 @@
 		if(event.key == 'q') {  // Increase Left Sensor Distance when pressed
 			lSD += 1.0
 			if(lSD > 15.0) lSD = 15.0
-			console.log("Left Sensor Distance increased");
+			console.log("Left Sensor Distance increased + " to lSD);
 		}
 		else if(event.key == 'a') {  // Decrease Left Sensor Distance when pressed
 			lSD -= 1.0
 			if(lSD < 1.0) lSD = 1.0
-			console.log("Left Sensor Distance decreased");
+			console.log("Left Sensor Distance decreased to " + lSD);
 		}
 		else if(event.key == 'w') {  // Increase Forward Sensor Distance when pressed
 			fSD += 1.0
 			if(fSD > 15.0) fSD = 15.0
-			console.log("Forward Sensor Distance increased");
+			console.log("Forward Sensor Distance increased to " + fSD);
 		}
 		else if(event.key == 's') {  // Decrease Forward Sensor Distance when pressed
 			fSD -= 1.0
 			if(fSD < 1.0) fSD = 1.0
-			console.log("Forward Sensor Distance decreased");
+			console.log("Forward Sensor Distance decreased to " + fSD);
 		}
 		else if(event.key == 'e') {  // Increase Right Sensor Distance when pressed
 			rSD += 1.0
 			if(rSD > 15.0) rSD = 15.0
-			console.log("Right Sensor Distance increased");
+			console.log("Right Sensor Distance increased to " + rSD);
 		}
 		else if(event.key == 'd') {  // Decrease Left Sensor Distance when pressed
 			rSD -= 1.0
 			if(rSD < 1.0) rSD = 1.0
-			console.log("Right Sensor Distance decreased");
+			console.log("Right Sensor Distance decreased to " + rSD);
 		}
 		else if(event.key == ' ') {  // Toggle "Sweep Mode" for Agents
 			scanSweepMode = !scanSweepMode
@@ -752,12 +752,12 @@
 		else if(event.key == 'm') {  // Increase Agent Size
 			agentSize += 0.2;
 			if(agentSize > 3.0) agentSize = 3.0
-			else console.log("Agent Size Increased")
+			else console.log("Agent Size Increased to " + agentSize)
 		}
 		else if(event.key == 'n') {  // Decrease Agent Size
 			agentSize -= 0.2;
 			if(agentSize < 0.2) agentSize = 0.2
-			else console.log("Agent Size Decreased")
+			else console.log("Agent Size Decreased to " + agentSize)
 		}
 		else if(event.key == 'b') { // Changes which kernel the Diffuse / Decay shader uses
 			kernelMode += 1;

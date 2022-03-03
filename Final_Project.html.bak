@@ -717,7 +717,7 @@
 		if(event.key == 'q') {  // Increase Left Sensor Distance when pressed
 			lSD += 1.0
 			if(lSD > 15.0) lSD = 15.0
-			console.log("Left Sensor Distance increased " + lSD);
+			console.log("Left Sensor Distance increased + " lSD);
 		}
 		else if(event.key == 'a') {  // Decrease Left Sensor Distance when pressed
 			lSD -= 1.0
@@ -743,11 +743,6 @@
 			rSD -= 1.0
 			if(rSD < 1.0) rSD = 1.0
 			console.log("Right Sensor Distance decreased to " + rSD);
-		}
-		else if(event.key == ' ') {  // Toggle "Sweep Mode" for Agents
-			scanSweepMode = !scanSweepMode
-			if(scanSweepMode) console.log("Side Scanner Sweep Mode Enabled")
-			else console.log("Side Scanner Sweep Mode Disabled)")
 		}
 		else if(event.key == 'm') {  // Increase Agent Size
 			agentSize += 0.2;
@@ -776,11 +771,6 @@
 			if(decayCoefficient < .3) decayCoefficient = .3
 			console.log("Decay Coefficient increased to " + decayCoefficient)
 		}
-		/*else if(event.key == 'c') {
-			agentColor += 1;
-			if(agentColor > 4) agentColor = 0;
-			console.log("Agent Color changed");
-		}*/
 	}
   </script>
 
