@@ -294,7 +294,7 @@
 	
 	const PDirCalcs = new Float32Array(agentCount)
 	const PDistCalcs = new Float32Array(agentCount)
-	const PMutCalcs = new Int8Array(agentCount)
+	const PMutCalcs = new Float32Array(agentCount)
 	
     window.onload = function() {
 	  
@@ -653,7 +653,7 @@
 		PMutCalcs[i] = determinePMut()
 	  }
 	  
-	  console.log(PDirCalcs)
+	  console.log(PMutCalcs)
 	  
 	  // bind PDir results
 	  gl.bindBuffer( gl.ARRAY_BUFFER, PDirBuffer)
