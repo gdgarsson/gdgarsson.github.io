@@ -123,7 +123,7 @@
 	
 	in float a_pdir;
 	in float a_pdist;
-	in int a_pmut;
+	in float a_pmut;
     
     uniform vec2 resolution;
 	
@@ -255,7 +255,7 @@
         textureBack, textureFront, framebuffer,
         copyProgram, simulationProgram, ddProgram, quad,
         dimensions = { width:null, height:null },
-        agentCount = 1000000
+        agentCount = 100000
 	
 	let time = 0
 	let agentSize = 1.0;
@@ -475,10 +475,15 @@
 	  // get all probability attributes in shader and enable them
 	  PDirAtt = gl.getAttribLocation(simulationProgram, 'a_pdir')
 	  gl.enableVertexAttribArray(PDirAtt)
-	  PDistAtt = gl.getAttribLocation(simulationProgram, 'a_pist')
+	  gl.vertexAttribPointer( PDirAtt, 1, gl.FLOAT, false, 0,0 )
+	  
+	  PDistAtt = gl.getAttribLocation(simulationProgram, 'a_pdist')
 	  gl.enableVertexAttribArray(PDistAtt)
+	  gl.vertexAttribPointer( PDistAtt, 1, gl.FLOAT, false, 0,0 )
+	  
 	  PMutAtt = gl.getAttribLocation(simulationProgram, 'a_pmut')
 	  gl.enableVertexAttribArray(PMutAtt)
+	  gl.vertexAttribPointer( PMutAtt, 1, gl.FLOAT, false, 0,0 )
     }
 
     function makeTextures() {
@@ -610,10 +615,9 @@
 	
 	function determinePMut() {
 		let value = Math.random()
-		return value < PMut && value >= 0.0
+		if (value < PMut && value >= 0.0) return 1.0
+		else return 0.0
 	}
-
-
 
     function render() {
       window.requestAnimationFrame( render )
@@ -649,12 +653,14 @@
 		PMutCalcs[i] = determinePMut()
 	  }
 	  
+	  console.log(PDirCalcs)
+	  
 	  // bind PDir results
 	  gl.bindBuffer( gl.ARRAY_BUFFER, PDirBuffer)
 	  gl.vertexAttribPointer( PDirAtt, 1, gl.FLOAT, false, 0,0 )
 	  gl.bufferData(
 		gl.ARRAY_BUFFER, 
-		PDirBuffer, 
+		PDirCalcs, 
 		gl.DYNAMIC_COPY
 	  )
 	  
@@ -663,16 +669,16 @@
 	  gl.vertexAttribPointer( PDistAtt, 1, gl.FLOAT, false, 0,0 )
 	  gl.bufferData(
 		gl.ARRAY_BUFFER, 
-		PDistBuffer, 
+		PDistCalcs, 
 		gl.DYNAMIC_COPY
 	  )
 	  
 	  // bind PMut results
 	  gl.bindBuffer( gl.ARRAY_BUFFER, PMutBuffer)
-	  gl.vertexAttribPointer( PMutAtt, 1, gl.UNSIGNED_BYTE, false, 0,0 )
+	  gl.vertexAttribPointer( PMutAtt, 1, gl.FLOAT, false, 0,0 )
 	  gl.bufferData(
 		gl.ARRAY_BUFFER, 
-		PMutBuffer, 
+		PMutCalcs, 
 		gl.DYNAMIC_COPY
 	  )
 	  
