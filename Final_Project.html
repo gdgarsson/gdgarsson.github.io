@@ -44,9 +44,6 @@
 	
 	uniform float time;
 	
-	// "Boolean" for Side Scanner Sweep Mode
-	uniform int scanSweepMode;
-	
 	// Size of each agent
 	// NOTE: This uses gl_PointSize to accomplish
 	uniform float agentSize;
@@ -55,19 +52,6 @@
 	uniform float leftSD ;
 	uniform float rightSD;
 	uniform float forwardSD;
-	
-	// The "angle" modifier for the Side Scanner Sweep Mode
-	// Starts at 0.0, can go to PI/8
-	float scanSweepAngleMod = 0.0;
-	
-	// The number of frames it takes for the Side Scanner Sweep Mode to complete a "sweep"
-	// NOTE: WebGL typically runs at 60 FPS in a browser. I.E. 120.0 = 2.0 seconds
-	// This is technically changing the rotation angle over time due to the math done in
-	//   the modifyScanSweepAngle() function
-	float scanSweepFrames = 180.0;
-	
-	// "Sweep" direction; 0 is narrower, 1 is wider
-	int scanSweepDirection = 0;
 	
     // our chemical layer
     uniform sampler2D uSampler;
@@ -97,25 +81,6 @@
       return texture( uSampler, pos + offset ).r;
     }
 	
-	void modifyScanSweepAngle(){
-		if(scanSweepMode == 1) { // ONLY Modify if scanSweepMode == 1
-			if(scanSweepDirection == 0) {
-				scanSweepAngleMod += (PI_8/scanSweepFrames);
-				if (scanSweepAngleMod > PI_8) {
-					scanSweepAngleMod = PI_8;
-					scanSweepDirection = 1;
-				}
-			}
-			else {
-				scanSweepAngleMod -= (PI_8/scanSweepFrames);
-				if(scanSweepAngleMod < 0.) {
-					scanSweepAngleMod = 0.;
-					scanSweepDirection = 0;
-				}
-			}
-		}
-	}
-    
     void main() {
       // get normalied height / width of a single pixel 
       vec2 pixel = 1. / resolution;
@@ -127,48 +92,27 @@
       vec2 pos = (1. + a_pos.xy) / 2.;
     
       // read sensor informatino at different angles
-      float left     = readSensor( pos, a_pos.zw, -PI_4 + scanSweepAngleMod, sensorDistance );
+      float left     = readSensor( pos, a_pos.zw, -PI_4, sensorDistance );
       float forward  = readSensor( pos, a_pos.zw, 0.,    sensorDistance );
-      float right    = readSensor( pos, a_pos.zw, PI_4 - scanSweepAngleMod,  sensorDistance );
+      float right    = readSensor( pos, a_pos.zw, PI_4,  sensorDistance );
       
       // initialize feedback transform output
       o_vpos = a_pos;
     
       // if most chemical is found to left... 
       if( left > forward && left > right ) {
-        // check for scanSweepMode
-		// either way, rotate left and store in .zw
-		if(scanSweepMode == 1) {
-		  o_vpos.zw = rotate( o_vpos.zw, -PI_4 + scanSweepAngleMod );
-		}
-		else {
-		  o_vpos.zw = rotate( o_vpos.zw, -PI_4 );
-		}
+        // rotate left and store in .zw
+		o_vpos.zw = rotate( o_vpos.zw, -PI_4 );
       }else if( right > left && right > forward ) { // chemical is to the right
         // Same thing again, on the other side
-		if(scanSweepMode == 1) {
-		  o_vpos.zw = rotate( o_vpos.zw, PI_4 - scanSweepAngleMod);
-		}
-		else {
-		  o_vpos.zw = rotate( o_vpos.zw, PI_4 );
-		}
+		o_vpos.zw = rotate( o_vpos.zw, PI_4 );
 		
       }else if ( right == left ) { // randomly pick a direction
         float rand = fract(sin(a_pos.x)*100000.0);
         if( rand > .5 ) { // Rotate right
-          if(scanSweepMode == 1) {
-		    o_vpos.zw = rotate( o_vpos.zw, PI_4 - scanSweepAngleMod);
-		  }
-		  else {
-		    o_vpos.zw = rotate( o_vpos.zw, PI_4 );
-		  }
+          o_vpos.zw = rotate( o_vpos.zw, PI_4 );
         }else{ // Rotate left
-          if(scanSweepMode == 1) {
-		    o_vpos.zw = rotate( o_vpos.zw, -PI_4 + scanSweepAngleMod );
-		  }
-		  else {
-		    o_vpos.zw = rotate( o_vpos.zw, -PI_4 );
-		  }
+          o_vpos.zw = rotate( o_vpos.zw, -PI_4 );
         }
       } // else keep going the same direction, no change required
       
@@ -185,24 +129,9 @@
   <script id='simulationFragment' type='x-shader/x-fragment'>#version 300 es
 	precision mediump float;
 	
-	uniform int agentColorSelect;
-	
-	vec3 white = vec3(1.);
-	vec3 red = vec3(1., 0., 0.);
-	vec3 blue = vec3(0., 1., 0.);
-	vec3 green = vec3(0., 0., 1.);
-	vec3 purple = vec3(1., 1., 0.);
-
 	out vec4 o_frag;
 	void main() {
-	  vec3 agentColor;
-	  if(agentColorSelect == 1) agentColor = red;
-	  else if(agentColorSelect == 2) agentColor = blue;
-	  else if(agentColorSelect == 3) agentColor = green;
-	  else if(agentColorSelect == 4) agentColor = purple;
-	  else agentColor = white;
-	
-      o_frag = vec4( agentColor, .1 );
+      o_frag = vec4( vec3(1.), .1 );
 	} 
   </script>
   
@@ -273,44 +202,16 @@
         dimensions = { width:null, height:null },
         agentCount = 1000000
 	
-	let preset = 1;
-	
 	let time = 0
 	let lSD = 1.0, rSD = 1.0, fSD = 1.0
 	let agentSize = 1.0;
-	let agentColor = 0;
-	let scanSweepMode = false
 	let decayCoefficient = .9
 	let kernelMode = 1; // Determines which blur kernel is used in the decay/diffuse shader
 	
-	let uLSD, uRSD, uFSD, uSweepMode, uAgentSize, uAgentColor,
+	let uLSD, uRSD, uFSD, uAgentSize,
 		uDecay, uKernalMode	
 	
     window.onload = function() {
-	  let presetInput = prompt("Input Preset (Options: 1-5)")
-	  
-	  if(presetInput == "2") {
-		preset = 2;
-		preset2();
-	  }
-	  else if(presetInput == "3") {
-		preset = 3;
-		preset3();
-	  }
-	  else if(presetInput == "4") {
-		preset = 4;
-		preset4();
-	  }
-	  else if(presetInput == "5") {
-		preset = 5;
-		preset5();
-	  }
-	  else {
-		preset = 1;
-		preset1();
-	  }
-	  
-	  console.log("Using Preset " + preset);
 	  
       const canvas = document.getElementById( 'gl' )
       gl = canvas.getContext( 'webgl2' )
@@ -329,77 +230,6 @@
       render()
     }
 	
-	/*
-	Properties Boundaries:
-		Sensor Distance: { 1.0, 15.0 } (Increments by 1.0)
-		Agent Size: { 0.2, 3.0 } (Increments by 0.2)
-		Decay Coefficient: { 0.3, 0.9 } (Increments by 0.05)
-		Blur Kernals: [ 1 (Laplacian), 2 (Gaussian) ]
-	*/
-	
-	
-	// Preset 1: Aka "The Plant Cell"
-	//   This preset usually results in a plant-cell like box that sustains itself
-	//     for quite a while.
-	function preset1() {
-	  lSD = 3.0, rSD = 3.0, fSD = 12.0
-	  agentSize = 2.0;
-	  agentColor = 0;
-	  scanSweepMode = false
-	  decayCoefficient = .7
-	  kernelMode = 1;
-	}
-	
-	
-	// Preset 2:
-	//   This one has an interesting tendency to always make vertical lines
-	//     of agents, typically on the sides of the screens. It may take a bit,
-	//     but it almost always results in vertical lines.
-	function preset2() {
-	  lSD = 10.0, rSD = 10.0, fSD = 1.0
-	  agentSize = 1.0;
-	  agentColor = 0;
-	  scanSweepMode = false
-	  decayCoefficient = .4
-	  kernelMode = 2;
-	}
-	
-	// Preset 3:
-	//   Honestly, this preset just had a weird tendency to create interesting shapes.
-	//     A few times it'd be a heart (biology-shaped, not the <3 drawing we all know),
-	//       then next it'd be a blob leaning to the right of the screen.
-	//     I guess it helps that I cranked the right side scanner up to 15 and lowered
-	//       the rest while enabling the side-sweep scanner mode.
-	function preset3() {
-	  lSD = 1.0, rSD = 15.0, fSD = 1.0
-	  agentSize = 0.6;
-	  agentColor = 0;
-	  scanSweepMode = true
-	  decayCoefficient = .5
-	  kernelMode = 2;
-	}
-	
-	// Preset 4:
-	//   I just cranked all of the fields down to their minimums and just figured I'd see what'd happen
-	function preset4() {
-	  lSD = 1.0, rSD = 1.0, fSD = 1.0
-	  agentSize = 0.2;
-	  agentColor = 0;
-	  scanSweepMode = false
-	  decayCoefficient = .9
-	  kernelMode = 1;
-	}
-	
-	// Preset 5:
-	//   I just cranked all of the fields up to their maximums and just figured I'd see what'd happen
-	function preset5() {
-	  lSD = 15.0, rSD = 15.0, fSD = 15.0
-	  agentSize = 3.0;
-	  agentColor = 0;
-	  scanSweepMode = true
-	  decayCoefficient = .3
-	  kernelMode = 1;
-	}
 
     function makeCopyPhase() {
       makeCopyShaders()
@@ -627,9 +457,7 @@
 	  uLSD = gl.getUniformLocation( simulationProgram, 'leftSD' )
 	  uRSD = gl.getUniformLocation( simulationProgram, 'rightSD' )
 	  uFSD = gl.getUniformLocation( simulationProgram, 'forwardSD' )
-	  uSweepMode = gl.getUniformLocation( simulationProgram, 'scanSweepMode' )
 	  uAgentSize = gl.getUniformLocation( simulationProgram, 'agentSize' )
-	  uAgentColor = gl.getUniformLocation( ddProgram, 'agentColorSelect' )
 	}
 
     function render() {
@@ -647,9 +475,7 @@
 	  gl.uniform1f( uFSD, fSD )
 	  gl.uniform1f( uRSD, rSD )
 	  gl.uniform1f( uAgentSize, agentSize )
-	  gl.uniform1i( uSweepMode, scanSweepMode )
-	  gl.uniform1i( uAgentColor, agentColor )
-    
+	  
       gl.bindFramebuffer( gl.FRAMEBUFFER, framebuffer )
     
       // use the framebuffer to write to our textureFront texture

@@ -717,7 +717,7 @@
 		if(event.key == 'q') {  // Increase Left Sensor Distance when pressed
 			lSD += 1.0
 			if(lSD > 15.0) lSD = 15.0
-			console.log("Left Sensor Distance increased + " to lSD);
+			console.log("Left Sensor Distance increased" + lSD);
 		}
 		else if(event.key == 'a') {  // Decrease Left Sensor Distance when pressed
 			lSD -= 1.0
