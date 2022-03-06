@@ -10,12 +10,16 @@
 		border:1px solid white;
 		color: white;
 	}
+	label {
+		color: white;
+	}
 	
 	</style>
   </head>
   <body>
     <canvas id='gl'></canvas>
-	<table>
+	<label for="displayTable"></label>
+	<table id="displayTable">
 	  <tr>
 		<th>
 		  <table>
@@ -85,6 +89,78 @@
 		</th>
 	  </tr>
 	</table>
+	<label for"inputTable">Input new values here:</label>
+	<table id="inputTable">
+	  <tr>
+		<th>
+		  <table>
+			<tr>
+				<th>Directional Modifier (in Degrees)</th>
+				<th>Probability</th>
+			</tr>
+			<tr>
+				<td>+30 Degrees</td>
+				<td><input id="PDir0Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+			<tr>
+				<td>+45 Degrees</td>
+				<td><input id="PDir1Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+			<tr>
+				<td>+90 Degrees</td>
+				<td><input id="PDir2Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+			<tr>
+				<td>-30 Degrees</td>
+				<td><input id="PDir3Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+			<tr>
+				<td>-45 Degrees</td>
+				<td><input id="PDir4Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+			<tr>
+				<td>-90 Degrees</td>
+				<td><input id="PDir5Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+		  </table>
+		</th>
+		<th>
+		  <table>
+			<tr>
+				<th>Distance Modifier (in Pixels)</th>
+				<th>Probability</th>
+			</tr>
+			<tr>
+				<td>1 Pixel</td>
+				<td><input id="PDist0Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+			<tr>
+				<td>2 Pixels</td>
+				<td><input id="PDist1Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+			<tr>
+				<td>2 Pixels</td>
+				<td><input id="PDist2Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+			<tr>
+				<td>3 Pixels</td>
+				<td><input id="PDist3Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+		  </table>
+		</th>
+		<th>
+		  <table>
+			<tr>
+				<th>Direction Change Probability</th>
+			</tr>
+			<tr>
+				<td><input id="PMutEntry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+			</tr>
+		  </table>
+		</th>
+	  </tr>
+	</table>
+	<button id="changeTableButton" onclick="updateValues()">Click to submit your changes to the table!</button>
   </body>
 
   <script id='copyVertex' type='x-shader/x-vertex'>#version 300 es
@@ -255,7 +331,7 @@
         textureBack, textureFront, framebuffer,
         copyProgram, simulationProgram, ddProgram, quad,
         dimensions = { width:null, height:null },
-        agentCount = 20000
+        agentCount = 1000000
 	
 	let time = 0
 	let agentSize = 1.0;
@@ -292,6 +368,8 @@
 		
 	let PDirBuffer, PDistBuffer, PMutBuffer
 	
+	let inputButton = document.getElementById("changeTableButton")
+	
 	const PDirCalcs = new Float32Array(agentCount)
 	const PDistCalcs = new Float32Array(agentCount)
 	const PMutCalcs = new Float32Array(agentCount)
@@ -318,7 +396,6 @@
 	  makeInteractiveUniforms()
       render()
     }
-	
 
     function makeCopyPhase() {
       makeCopyShaders()
@@ -567,6 +644,76 @@
 	  uAgentSize = gl.getUniformLocation( simulationProgram, 'agentSize' )
 	}
 	
+	function updateValues(){
+		updatePDirValues()
+		updatePDistValues()
+		updatePMutValue()
+		
+		updateTables()
+	}
+	
+	function updateTables(){
+		updatePDirTable()
+		updatePDistTable()
+		updatePMutTable()
+	}
+	
+	function updatePDirValues() {
+		let tempValues = []
+		
+		let sum = 0.0
+		for (let i = 0; i < PDir.length; i++) {
+			tempValues[i] = parseFloat(document.getElementById("PDir" + i + "Entry").value)
+			sum += tempValues[i]
+		}
+		
+		console.log(sum)
+		
+		if(sum != 1.0) {
+			alert("PDir values must total 1.0")
+			return false;
+		}
+		else {
+			PDir = tempValues
+			return true;
+		}
+	}
+	
+	function updatePDistValues() {
+		let tempValues = []
+		
+		let sum = 0.0
+		for (let i = 0; i < PDist.length; i++) {
+			tempValues[i] = parseFloat(document.getElementById("PDist" + i + "Entry").value)
+			sum += tempValues[i]
+		}
+		
+		console.log(sum)
+		
+		if(sum != 1.0) {
+			alert("PDist values must total 1.0")
+			return false;
+		}
+		else {
+			PDist = tempValues
+			return true;
+		}
+	}
+	
+	function updatePMutValue() {
+		let tempValue;
+		
+		tempValue = parseFloat(document.getElementById("PMutEntry").value)
+		if(tempValue > 1.0 || tempValue <= 0.0) {
+			alert("PMut must be between values of 0.0 and 1.0")
+			return false;
+		}
+		else {
+			PMut = tempValue;
+			return true;
+		}
+	}
+	
 	function updatePDirTable() {
 		for(let i = 0; i < PDir.length; i++) {
 			document.getElementById("PDir" + i + "Display").innerHTML = PDir[i]
@@ -749,12 +896,12 @@
 			if(kernelMode == 1) console.log("Diffuse Kernel changed to Laplacian")
 			else console.log("Diffuse Kernel changed to Gaussian")
 		}
-		else if(event.key == ',') { // Increase Decay Coefficient
+		else if(event.key == 'x') { // Increase Decay Coefficient
 			decayCoefficient += .05;
 			if(decayCoefficient > .9) decayCoefficient = .9
 			console.log("Decay Coefficient increased to " + decayCoefficient)
 		}
-		else if(event.key == '.') { // Decrease Decay Coefficient
+		else if(event.key == 'z') { // Decrease Decay Coefficient
 			decayCoefficient -= .05;
 			if(decayCoefficient < .3) decayCoefficient = .3
 			console.log("Decay Coefficient increased to " + decayCoefficient)
