@@ -9,3 +9,6 @@ Assignment 3: [Project](https://gdgarsson.github.io/A3.html),
 Assignment 4: [Project](https://gdgarsson.github.io/A4.html),
 	      [Repository](https://github.com/gdgarsson/gdgarsson.github.io), 
               [Explanation](https://github.com/gdgarsson/gdgarsson.github.io/blob/main/explanation_a4.txt) <br>
+Final Project: [Project](https://gdgarsson.github.io/Final_Project.html),
+	      [Repository](https://github.com/gdgarsson/gdgarsson.github.io), 
+              [Explanation](https://github.com/gdgarsson/gdgarsson.github.io/blob/main/explanation_final.txt) <br>

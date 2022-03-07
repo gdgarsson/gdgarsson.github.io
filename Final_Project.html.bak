@@ -68,11 +68,11 @@
 				<td id="PDist1Display"></td>
 			</tr>
 			<tr>
-				<td>2 Pixels</td>
+				<td>3 Pixels</td>
 				<td id="PDist2Display"></td>
 			</tr>
 			<tr>
-				<td>3 Pixels</td>
+				<td>4 Pixels</td>
 				<td id="PDist3Display"></td>
 			</tr>
 		  </table>
@@ -88,8 +88,8 @@
 		  </table>
 		</th>
 	  </tr>
-	</table>
-	<label for"inputTable">Input new values here:</label>
+	</table><br>
+	<label for"inputTable">Input new values here (Note: the sum of each column must total 1.0 for changes to be valid):</label>
 	<table id="inputTable">
 	  <tr>
 		<th>
@@ -100,27 +100,27 @@
 			</tr>
 			<tr>
 				<td>+30 Degrees</td>
-				<td><input id="PDir0Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PDir0Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
 			</tr>
 			<tr>
 				<td>+45 Degrees</td>
-				<td><input id="PDir1Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PDir1Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
 			</tr>
 			<tr>
 				<td>+90 Degrees</td>
-				<td><input id="PDir2Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PDir2Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
 			</tr>
 			<tr>
 				<td>-30 Degrees</td>
-				<td><input id="PDir3Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PDir3Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
 			</tr>
 			<tr>
 				<td>-45 Degrees</td>
-				<td><input id="PDir4Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PDir4Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
 			</tr>
 			<tr>
 				<td>-90 Degrees</td>
-				<td><input id="PDir5Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PDir5Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
 			</tr>
 		  </table>
 		</th>
@@ -132,19 +132,19 @@
 			</tr>
 			<tr>
 				<td>1 Pixel</td>
-				<td><input id="PDist0Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PDist0Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
 			</tr>
 			<tr>
 				<td>2 Pixels</td>
-				<td><input id="PDist1Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
-			</tr>
-			<tr>
-				<td>2 Pixels</td>
-				<td><input id="PDist2Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PDist1Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
 			</tr>
 			<tr>
 				<td>3 Pixels</td>
-				<td><input id="PDist3Entry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PDist2Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
+			</tr>
+			<tr>
+				<td>4 Pixels</td>
+				<td><input id="PDist3Entry" type="number" min="0.00" max="1.00" step="0.01"></input></td>
 			</tr>
 		  </table>
 		</th>
@@ -154,7 +154,7 @@
 				<th>Direction Change Probability</th>
 			</tr>
 			<tr>
-				<td><input id="PMutEntry" type="number" min="0.01" max="1.0" step="0.01"></input></td>
+				<td><input id="PMutEntry" type="number" min="0.00" max="1.0" step="0.01"></input></td>
 			</tr>
 		  </table>
 		</th>
@@ -235,7 +235,7 @@
       // get normalied height / width of a single pixel 
       vec2 pixel = 1. / resolution;
     
-      // how far ahead should sensing occur? this is fun to play with
+      // determine how far the agent should move
       vec2 moveDistance = pixel * a_pdist;
     
       // normalize our {-1,1} vertex coordinates to {0,1} for texture lookups
@@ -244,10 +244,10 @@
       // initialize feedback transform output
       o_vpos = a_pos;
 	  
-	  // Rotate agent a_pdir, if a_pmut succeeded
+	  // Rotate agent by a_pdir degrees, if a_pmut succeeded
 	  o_vpos.zw = rotate( o_vpos.zw, toRadians(a_pdir) * a_pmut);
       
-      // move our agent in our new direction by one pixel
+      // move our agent in our new direction by the distance determined by a_pdist
       o_vpos.xy += o_vpos.zw * moveDistance;
       
       gl_PointSize = agentSize;
@@ -331,7 +331,7 @@
         textureBack, textureFront, framebuffer,
         copyProgram, simulationProgram, ddProgram, quad,
         dimensions = { width:null, height:null },
-        agentCount = 1000000
+        agentCount = 500000
 	
 	let time = 0
 	let agentSize = 1.0;
@@ -363,9 +363,11 @@
 	
 	// PMut is the probability that the direction will change
 	let PMut = .6
-
+	
+	// Probability Attribute Pointers
 	let PDirAtt, PDistAtt, PMutAtt
-		
+			
+	// Probability array buffers
 	let PDirBuffer, PDistBuffer, PMutBuffer
 	
 	let inputButton = document.getElementById("changeTableButton")
@@ -644,6 +646,7 @@
 	  uAgentSize = gl.getUniformLocation( simulationProgram, 'agentSize' )
 	}
 	
+	// Update all probability values and update the display
 	function updateValues(){
 		updatePDirValues()
 		updatePDistValues()
@@ -652,84 +655,97 @@
 		updateTables()
 	}
 	
+	// Update the display tables in the HTML
 	function updateTables(){
 		updatePDirTable()
 		updatePDistTable()
 		updatePMutTable()
 	}
 	
+	// Update the values of the PDir array
 	function updatePDirValues() {
 		let tempValues = []
-		
 		let sum = 0.0
+		
+		// copy values from the input table to the temporary array
 		for (let i = 0; i < PDir.length; i++) {
 			tempValues[i] = parseFloat(document.getElementById("PDir" + i + "Entry").value)
 			sum += tempValues[i]
 		}
 		
-		console.log(sum)
-		
+		// if the sum of the probabilities is not 1.0
 		if(sum != 1.0) {
 			alert("PDir values must total 1.0")
 			return false;
 		}
 		else {
+			// change PDir array to be the contents of the new array and return success
 			PDir = tempValues
 			return true;
 		}
 	}
 	
+	// Update the values of the PDist array
 	function updatePDistValues() {
 		let tempValues = []
-		
 		let sum = 0.0
+		
+		// copy values from the input table to the temporary array
 		for (let i = 0; i < PDist.length; i++) {
 			tempValues[i] = parseFloat(document.getElementById("PDist" + i + "Entry").value)
 			sum += tempValues[i]
 		}
 		
-		console.log(sum)
-		
+		// if the sum of the probabilities is not 1.0
 		if(sum != 1.0) {
 			alert("PDist values must total 1.0")
 			return false;
 		}
 		else {
+			// change PDist array to be the contents of the new array and return success
 			PDist = tempValues
 			return true;
 		}
 	}
 	
+	// Update the value of PMut
 	function updatePMutValue() {
 		let tempValue;
 		
 		tempValue = parseFloat(document.getElementById("PMutEntry").value)
-		if(tempValue > 1.0 || tempValue <= 0.0) {
+		
+		// if the value gathered from the table is between 0.0 and 1.0
+		if(tempValue => 1.0 || tempValue <= 0.0) {
 			alert("PMut must be between values of 0.0 and 1.0")
 			return false;
 		}
 		else {
+			// Set PMut to the value provided by the user and return sucess
 			PMut = tempValue;
 			return true;
 		}
 	}
 	
+	// Update the display table for PDir
 	function updatePDirTable() {
 		for(let i = 0; i < PDir.length; i++) {
 			document.getElementById("PDir" + i + "Display").innerHTML = PDir[i]
 		}
 	}
 	
+	// Update the display table for PDist
 	function updatePDistTable() {
 		for(let i = 0; i < PDist.length; i++) {
 			document.getElementById("PDist" + i + "Display").innerHTML = PDist[i]
 		}
 	}
 	
+	// Update the display table for PMut
 	function updatePMutTable() {
 		document.getElementById("PMutDisplay").innerHTML = PMut
 	}
 	
+	// Randomly determine which value of PDir will be used with weighted odds
 	function determinePDir() {
 		let value = Math.random()
 		
@@ -745,23 +761,32 @@
 		}
 	}
 	
+	// Randomly determine which value of PDir will be used with weighted odds
 	function determinePDist() {
+		// randomly generate a value between 0.0 and 1.0
 		let value = Math.random()
 		
+		
+		// RangeMin is the floor, rangeMax is the ceiling for the current calculations
 		let rangeMin = 0.0;
 		let rangeMax = 0.0;
 		
 		for(let i = 0; i < PDist.length; i++){
 			rangeMin = rangeMax;
 			rangeMax += PDist[i]
+			// if the value falls within the range of the current outcome's probability
 			if(value < rangeMax && value >= rangeMin){
+				// return the corresponding value to the outcome
 				return DistValues[i]
 			}
 		}
 	}
 	
+	// Randomly determine if PMut succeeds
 	function determinePMut() {
 		let value = Math.random()
+		
+		// If the random value is between 0.0 and PMut, return success
 		if (value < PMut && value >= 0.0) return 1.0
 		else return 0.0
 	}

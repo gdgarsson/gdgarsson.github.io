@@ -1,0 +1,29 @@
+Geoffrey Garsson
+CS420x Final Project
+
+After the Monte Carlo Physarum Machine was shown to the class, I was admittedly very intrigued by it. There were a lot of post-processing effects that I wanted to attempt to create but alas they weren't things
+	that I felt I could do solo with the time I had left in the term. I didn't really have any visual goals for this, as I was mainly focused on the technical achievement. Originally, I wanted to fully replicate the thesis
+	that was published by Oskar Elek, but I quickly realized that some of the components were going to be slightly difficult, especially the conversion to 3D, which I opted to cut entirely. That left the main algorithm itself,
+	which used continuous probability functions to determine the actions of the agents in the scene. As continuous probability functions are rather difficult to implement without significant overhauls and/or external libraries,
+	I opted to instead use a traditional probability table to influence the behaviors of the agents and allow the users to manipulate the odds of the potential behaviors. I decided to keep things simple, so I went with the
+	options to have the agents turn 30, 45, or 90 degrees in either direction, or move 1 to 4 pixels, depending on what the random number generator chose each render, and had a final variable to determine the odds of if an
+	agent would move at all. The main challenge of the program was to work in the interactive table with the GPU in an optimal way, which admittedly was a rather interesting challenge. After much research and discussion
+	with my peers, I ended up using attributes to send the values for each agent to the GPU each render phase, and used the CPU to handle everything else. The shader actually had minimal work that needed to be done, as the
+	algorithm to influence the agents was rather simple to implement. The main thing that I had to relearn to send the amount of data I needed from the CPU to the GPU was array buffers, and figuring out which types would work
+	best with what I needed, since there was quite a bit of translation work from the original thesis that needed to be done. Oskar Elek's original work had been done in C++ and used Direct11, while my project, of course, used
+	Javascript, WebGL, and GLSL.
+
+Like I said earlier, there really isn't a visual theme here, though "space dust" may be an appropriate name here.
+
+While I didn't get much feedback on this aside from Professor Roberts reviewing my progress on the algorithmic implementation, I'm very glad I was able to work on this project. It was a good challenge that I thoroughly enjoyed.
+	It's something that personally, I would love to attempt again using another programming language, likely something C++ related, it was a fun simulation to try to get working.
+
+There are 2 tables underneath the canvas; one is the display table containing the current values, the other contains input fields that will update the results should the entries be valid (the program will alert you if otherwise).
+	The values for each field are constrained by step from 0.0 to 1.0, though entering values beyond those is still possible (it will just always trigger the alert since they are invalid probabilities). There was
+	sadly no way to prevent it from what I could find, though it shouldn't make much of a difference anyways.
+I kept in a few relevant features from my A4 for anyone who thinks messing around with those settings might produce interesting results, they still all work with this new simulation.
+The controls are:
+
+Press 'm/n': Increase/Decrease Agent Size by 0.2 (min: 0.2, max: 3.0)
+Press 'x/z': Increase/Decrease Decay Coefficient by 0.05 (min: 0.3, max: 0.9)
+Press 'b': Changes which blur kernel the diffuse/decay shader uses. (Starts on Laplacian, other option is Gaussian)
